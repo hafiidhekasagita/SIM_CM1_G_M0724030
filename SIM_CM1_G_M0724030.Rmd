@@ -1,0 +1,879 @@
+---
+title: "Analisis Perilaku Penyewaan Film: Genre, Aktor, dan Segmentasi Pelanggan di Database Sakila"
+author: "HAFIIDH EKA SAGITA (M0724030)"
+date: "2026-05-26"
+output: 
+ html_document:
+    theme: flatly
+    highlight: pygments
+    toc: true
+    toc_depth: 3
+    toc_float:
+      collapsed: true
+      smooth_scroll: true
+    number_sections: true
+    df_print: paged
+    code_folding: hide
+---
+
+```{=html}
+<!-- ============================================================
+     CUSTOM CSS — Dark Academic (Hijau Tua & Krem Hangat)
+     ============================================================ -->
+<style>
+/* ── Google Fonts ── */
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Source+Serif+4:ital,wght@0,300;0,400;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap');
+
+/* ── CSS Variables ── */
+:root {
+  --clr-bg:      #f7f4ef;
+  --clr-surface: #ffffff;
+  --clr-border:  #ddd5c8;
+  --clr-text:    #2c2416;
+  --clr-muted:   #7a6e60;
+  --clr-accent:  #2d6a4f;
+  --clr-accent2: #b5835a;
+  --clr-accent3: #c9184a;
+  --clr-light:   #d8f3dc;
+  --clr-warm:    #fdf0e0;
+  --radius:      8px;
+  --shadow:      0 2px 12px rgba(44,36,22,.08);
+
+  /* Code theme — GitHub Dark */
+  --code-bg:      #0d1117;
+  --code-txt:     #c9d1d9;
+  --code-kw:      #ff7b72;   /* keyword   → merah muda */
+  --code-fn:      #d2a8ff;   /* function  → ungu      */
+  --code-st:      #a5d6ff;   /* string    → biru muda */
+  --code-nu:      #ffa657;   /* number    → oranye    */
+  --code-co:      #8b949e;   /* comment   → abu-abu   */
+  --code-op:      #79c0ff;   /* operator  → biru      */
+  --code-cn:      #ffa657;   /* constant  → oranye    */
+}
+
+/* ── Base ── */
+body {
+  font-family: 'Source Serif 4', Georgia, serif;
+  font-size: 15.5px;
+  color: var(--clr-text);
+  background: var(--clr-bg);
+  line-height: 1.85;
+}
+
+/* ── Headings ── */
+h1, h2, h3, h4 { font-family: 'Playfair Display', Georgia, serif; color: var(--clr-text); }
+h1.title {
+  font-size: 2.1rem;
+  border-bottom: 3px solid var(--clr-accent);
+  padding-bottom: .5rem;
+  margin-bottom: .2rem;
+  letter-spacing: -.5px;
+}
+h2 { border-left: 4px solid var(--clr-accent); padding-left: .75rem; margin-top: 2rem; }
+h3 { color: var(--clr-accent); font-size: 1.15rem; }
+.author { color: var(--clr-muted); font-style: italic; }
+.date   { color: var(--clr-muted); font-size: .9rem; }
+
+/* ── Callout Boxes ── */
+.callout-info, .callout-warning, .callout-success, .callout-dark {
+  border-radius: var(--radius);
+  padding: 15px 20px;
+  margin: 18px 0;
+  font-size: .95rem;
+}
+.callout-info    { background: #eaf4ee; border-left: 4px solid var(--clr-accent); }
+.callout-warning { background: var(--clr-warm); border-left: 4px solid var(--clr-accent2); }
+.callout-success { background: var(--clr-light); border-left: 4px solid #40916c; }
+.callout-dark    { background: #161b22; border-left: 4px solid var(--clr-accent2);
+                   color: #c9d1d9; border-radius: var(--radius); padding: 15px 20px; }
+.callout-dark strong { color: #ffa657; }
+
+/* ── Metric Cards ── */
+.metric-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 14px;
+  margin: 22px 0;
+}
+.metric-card {
+  background: var(--clr-surface);
+  border: 1px solid var(--clr-border);
+  border-radius: var(--radius);
+  padding: 18px 12px;
+  text-align: center;
+  box-shadow: var(--shadow);
+  transition: transform .15s;
+}
+.metric-card:hover { transform: translateY(-3px); }
+.metric-card .val {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.9rem;
+  font-weight: 700;
+  color: var(--clr-accent);
+  display: block;
+}
+.metric-card .lbl {
+  font-size: .78rem;
+  color: var(--clr-muted);
+  margin-top: 4px;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+}
+
+/* ── Tables ── */
+table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
+thead tr { background: var(--clr-accent); color: white; }
+tbody tr:nth-child(even) { background: #f2ede6; }
+td, th { padding: 9px 13px; border: 1px solid var(--clr-border); }
+
+/* ════════════════════════════════════════════════
+   CODE BLOCKS — GitHub Dark Theme + Token Colors
+   ════════════════════════════════════════════════ */
+pre, code {
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+/* Blok kode (pre) */
+pre {
+  background: var(--code-bg) !important;
+  color: var(--code-txt) !important;
+  border-radius: var(--radius) !important;
+  padding: 18px 20px !important;
+  overflow-x: auto;
+  border: 1px solid #30363d !important;
+  box-shadow: 0 4px 16px rgba(0,0,0,.35);
+}
+
+/* Inline code */
+code {
+  background: #ede8e0;
+  color: #5c3d1e;
+  border-radius: 4px;
+  padding: 2px 6px;
+}
+pre code {
+  background: transparent !important;
+  color: var(--code-txt) !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+}
+
+/* ── Syntax Token Colors (Pygments / Pandoc classes) ── */
+/* Keywords: if, else, for, function, library, TRUE, FALSE, NULL */
+pre .kw, pre .cf { color: var(--code-kw) !important; font-weight: 600; }
+
+/* Strings */
+pre .st, pre .vs { color: var(--code-st) !important; }
+
+/* Numbers & constants */
+pre .dv, pre .fl, pre .bn, pre .cn { color: var(--code-nu) !important; }
+
+/* Functions & built-ins */
+pre .fu, pre .bu { color: var(--code-fn) !important; }
+
+/* Comments */
+pre .co { color: var(--code-co) !important; font-style: italic; }
+
+/* Operators & special chars */
+pre .op, pre .sc { color: var(--code-op) !important; }
+
+/* Variable / identifier */
+pre .va { color: var(--code-txt) !important; }
+
+/* Other tokens */
+pre .ot { color: #79c0ff !important; }
+pre .al { color: #ff7b72 !important; font-weight: 700; }
+
+/* Pandoc highlight wrapper overrides */
+div.sourceCode {
+  background: var(--code-bg) !important;
+  border-radius: var(--radius) !important;
+  border: 1px solid #30363d !important;
+  margin: 14px 0;
+}
+div.sourceCode pre {
+  border: none !important;
+  box-shadow: none;
+  margin: 0;
+}
+
+/* ── TOC — hanya tampil H1, sub-item muncul saat scroll ── */
+#TOC {
+  background: var(--clr-surface);
+  border: 1px solid var(--clr-border);
+  border-radius: var(--radius);
+  padding: 14px;
+  box-shadow: var(--shadow);
+  font-size: .9rem;
+}
+#TOC a { color: var(--clr-accent); text-decoration: none; }
+#TOC a:hover { color: var(--clr-accent2); text-decoration: underline; }
+
+/* Sembunyikan semua sub-item TOC secara default */
+#TOC ul ul { display: none; transition: all .3s ease; }
+
+/* Tampilkan sub-item hanya ketika parent-nya aktif (ditandai js tocify) */
+#TOC li.active > ul,
+#TOC li.active-parent > ul { display: block; }
+
+/* ── Divider ── */
+hr { border: none; border-top: 1px solid var(--clr-border); margin: 2.5rem 0; }
+
+/* ── TOC Toggle Button ── */
+#toc-toggle-btn {
+  position: fixed;
+  top: 48%;
+  left: 0;
+  z-index: 9999;
+  background: var(--clr-accent);
+  color: white;
+  border: none;
+  border-radius: 0 6px 6px 0;
+  padding: 10px 7px;
+  cursor: pointer;
+  font-size: 11px;
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 700;
+  letter-spacing: 1px;
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  transition: background .2s, left .3s;
+  box-shadow: 2px 0 8px rgba(0,0,0,.25);
+  user-select: none;
+}
+#toc-toggle-btn:hover { background: var(--clr-accent2); }
+
+/* State: TOC disembunyikan */
+body.toc-hidden .col-xs-12.col-sm-4.col-md-3 {
+  display: none !important;
+}
+body.toc-hidden .col-xs-12.col-sm-8.col-md-9 {
+  width: 100% !important;
+  max-width: 100% !important;
+  flex: 0 0 100% !important;
+}
+
+/* ── Insight Banner ── */
+.insight-banner {
+  background: linear-gradient(135deg, var(--clr-accent) 0%, #1b4332 100%);
+  color: white;
+  border-radius: var(--radius);
+  padding: 20px 24px;
+  margin: 22px 0;
+}
+.insight-banner h4 {
+  color: #a8d5b5;
+  margin-top: 0;
+  font-size: 1rem;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  font-family: 'Playfair Display', serif;
+}
+.insight-banner p { margin: 0; line-height: 1.75; }
+.insight-banner p + p { margin-top: 10px; }
+
+/* ── Dimensi Label ── */
+.dim-label {
+  display: inline-block;
+  background: var(--clr-accent);
+  color: white;
+  font-size: .75rem;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  padding: 3px 12px;
+  border-radius: 20px;
+  margin-bottom: 8px;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* ── Footer ── */
+.footer-bar {
+  text-align: center;
+  color: var(--clr-muted);
+  font-size: 12.5px;
+  border-top: 1px solid var(--clr-border);
+  padding-top: 18px;
+  margin-top: 40px;
+  font-style: italic;
+}
+</style>
+```
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo       = TRUE,
+  message    = FALSE,
+  warning    = FALSE,
+  fig.align  = "center",
+  fig.width  = 9,
+  fig.height = 5,
+  out.width  = "100%"
+)
+
+```
+
+
+```{r libraries, include=FALSE}
+library(DBI)
+library(RMySQL)
+library(tidyverse)
+library(ggplot2)
+library(scales)
+library(knitr)
+library(kableExtra)
+library(plotly)
+library(patchwork)
+library(ggrepel)
+```
+
+
+---
+
+# Pendahuluan
+
+```{=html}
+<div class="callout-info">
+<strong>📋 Konteks Analisis</strong><br>
+Laporan ini mengeksplorasi <em>apa yang sesungguhnya mendorong perilaku penyewaan film</em> di toko rental DVD yang direpresentasikan oleh database <strong>Sakila</strong>. 
+penelitian berfokus pada tiga dimensi utama secara bersamaan: preferensi <strong>genre</strong>, pengaruh <strong>aktor</strong>, dan karakter <strong>pelanggan</strong>. Ketiga dimensi tersebut dibuhungkan melalui entitas <code>film</code> sebagai jembatan data.
+</div>
+```
+
+## Latar Belakang
+
+Database **Sakila** merupakan **sample database** resmi MySQL yang merepresentasikansistem manajemen toko penyewaan DVD. Database ini terdiri dari **16 tabel** yang mencakup data film, aktor, pelanggan, staf, toko, transaksi sewa, hingga pembayaran.
+
+Dalam bisnis rental film, terdapat setidaknya tiga pola perilaku pelanggan yang secara intuitif berbeda:
+
+1. **Genre Lover**     : Pelanggan yang secara konsisten menyewa film dari genre favorit tertentu.
+2. **Actor Fans**      : Pelanggan yang mengikuti aktor tertentu sehingga menyewa film apapun yang dibintanginya.
+3. **Film Enthusiast** : Pelanggan yang menyewa film lintas genre secara merata, menunjukkan kecintaan terhadap film secara umum.
+
+## Rumusan Masalah
+
+Laporan ini menjawab tiga pertanyaan utama:
+
+> 1. Genre apa yang paling menguntungkan & apakah volume sewa tinggi selalu berbanding lurus dengan revenue?
+> 2. Apakah ada efek *"Star Power"* aktor terhadap jumlah dan nilai rental?
+> 3. Bagaimana profil segmentasi pelanggan berdasarkan keragaman genre yang disewa?
+
+---
+
+# Data & Metodologi
+
+## Koneksi ke Database Sakila
+```{r koneksi-db}
+con <- dbConnect(
+  RMySQL::MySQL(),
+  host     = "localhost",
+  port     = 3306,
+  dbname   = "sakila",
+  user     = "root",
+  password = "MySQL"
+)
+```
+
+## Gambaran Umum Dataset
+
+```{r overview-data}
+tabel_kunci <- c("film", "actor", "category", "customer", "rental", "payment", "inventory")
+
+ringkasan <- map_dfr(tabel_kunci, function(t) {
+  n <- dbGetQuery(con, paste0("SELECT COUNT(*) AS n FROM ", t))$n
+  tibble(Tabel = t, "Jumlah Record" = n)
+})
+```
+
+```{r tabel-ringkasan, echo=FALSE}
+ringkasan %>%
+  kbl(caption = "Ringkasan jumlah record tabel utama Sakila",
+      align = c("l", "r")) %>%
+  kable_styling(bootstrap_options = c("striped","hover", "condensed"),
+                full_width = FALSE) %>%
+  row_spec(0, background = "#2d6a4f", color = "white")
+
+```
+
+```{=html}
+<div class="metric-grid">
+  <div class="metric-card"><span class="val">1.000</span><span class="lbl">Total Film</span></div>
+  <div class="metric-card"><span class="val">200</span><span class="lbl">Aktor</span></div>
+  <div class="metric-card"><span class="val">599</span><span class="lbl">Pelanggan</span></div>
+  <div class="metric-card"><span class="val">16.044</span><span class="lbl">Transaksi Sewa</span></div>
+  <div class="metric-card"><span class="val">16</span><span class="lbl">Genre</span></div>
+</div>
+```
+
+---
+
+# Analisis Tiga Dimensi
+
+Bagian ini menelaah tiga dimensi utama yang membentuk perilaku penyewaan film:
+**profibilitas genre**, **pengaruh aktor (star power)**, dan **segmentasi pelanggan** berbasis indeks konsentrasi genre. Ketiga dimensi dianalisis secara terpisah kemudian disintesiskan untuk menghasilkan gambaran bisnis yang menyeluruh.
+
+## Dimensi 1 - Genre & Profitabilitas
+
+```{=html}
+<span class="dim-label">Dimensi 01 ⋅ Genre</span>
+```
+
+### Pengambilan Data
+
+```{r query-genre}
+df_genre <- dbGetQuery(con, "
+  SELECT
+    c.name                        AS genre,
+    COUNT(DISTINCT r.rental_id)   AS total_rental,
+    SUM(p.amount)                 AS total_revenue,
+    ROUND(SUM(p.amount) /
+          COUNT(DISTINCT r.rental_id), 2) AS revenue_per_rental
+  FROM category c
+    JOIN film_category fc ON c.category_id = fc.category_id
+    JOIN film f           ON fc.film_id     = f.film_id
+    JOIN inventory i      ON f.film_id      = i.film_id
+    JOIN rental r         ON i.inventory_id = r.inventory_id
+    JOIN payment p        ON r.rental_id    = p.rental_id
+  GROUP BY c.name
+  ORDER BY total_revenue DESC
+")
+```
+
+### Volume vs Revenue per Genre
+
+```{r plot-genre, fig.cap="Perbandingan volume sewa dan total revenue per genre. Perbedaan urutan antar kedua grafik mengindikasikan variasi efisiensi revenue antar genre."}
+p1 <- df_genre %>%
+  mutate(genre = fct_reorder(genre, total_revenue)) %>%
+  ggplot(aes(x = genre, y = total_revenue, fill = total_revenue)) +
+  geom_col(show.legend = FALSE) +
+  scale_fill_gradient(low = "#95d5b2", high = "#1b4332") +
+  scale_y_continuous(labels = dollar_format(prefix = "$")) +
+  coord_flip() +
+  labs(title = "Total Revenue per Genre", x = NULL, y = "Total Revenue (USD)") +
+  theme_minimal(base_size = 12) +
+  theme(plot.title      = element_text(face = "bold", family = "serif"),
+        panel.grid.major.y = element_blank())
+
+p2 <- df_genre %>%
+  mutate(genre = fct_reorder(genre, total_rental)) %>%
+  ggplot(aes(x = genre, y = total_rental, fill = total_rental)) +
+  geom_col(show.legend = FALSE) +
+  scale_fill_gradient(low = "#f4d03f", high = "#b5835a") +
+  coord_flip() +
+  labs(title = "Volume Sewa per Genre", x = NULL, y = "Jumlah Rental") +
+  theme_minimal(base_size = 12) +
+  theme(plot.title      = element_text(face = "bold", family = "serif"),
+        panel.grid.major.y = element_blank())
+
+p1 + p2
+```
+
+### Interpretasi
+
+```{=html}
+<div class="insight-banner">
+  <h4>🎯 Temuan Utama — Genre</h4>
+  <p>
+    <strong>Sports</strong> mendominasi secara konsisten, meraih posisi
+    <em>pertama</em> pada kedua ranking (revenue <em>dan</em> volume), menjadikannya
+    genre paling kuat secara keseluruhan. Namun ranking keduanya <em>tidak selalu
+    identik</em>, yang mengungkap perbedaan efisiensi antar genre.
+  </p>
+  <p>
+    Genre <strong>paling efisien</strong> (revenue per rental tinggi relatif terhadap
+    volume): <strong>Comedy</strong> berada di posisi #5 revenue namun hanya #11
+    volume, menghasilkan pendapatan besar dari jumlah sewa yang relatif sedikit.
+    Genre <strong>New</strong> juga menunjukkan pola serupa (#7 revenue vs #12 volume).
+  </p>
+  <p>
+    Sebaliknya, genre <strong>paling tidak efisien</strong>: <strong>Documentary</strong>
+    (#7 volume namun #11 revenue) dan <strong>Family</strong> (#5 volume namun #10
+    revenue), banyak disewa tetapi menghasilkan revenue per rental yang lebih rendah
+    dari rata-rata.
+  </p>
+</div>
+```
+
+---
+
+## Dimensi 2 — Pengaruh Aktor (*Star Power*)
+
+```{=html}
+<span class="dim-label">Dimensi 02 ⋅ Aktor</span>
+```
+
+### Pengambilan Data
+
+```{r query-aktor}
+df_aktor <- dbGetQuery(con, "
+  SELECT
+    CONCAT(a.first_name, ' ', a.last_name) AS aktor,
+    COUNT(DISTINCT r.rental_id)            AS total_rental,
+    SUM(p.amount)                          AS total_revenue,
+    COUNT(DISTINCT fc.category_id)         AS jml_genre_dibintangi
+  FROM actor a
+    JOIN film_actor fa    ON a.actor_id     = fa.actor_id
+    JOIN film f           ON fa.film_id     = f.film_id
+    JOIN film_category fc ON f.film_id      = fc.film_id
+    JOIN inventory i      ON f.film_id      = i.film_id
+    JOIN rental r         ON i.inventory_id = r.inventory_id
+    JOIN payment p        ON r.rental_id    = p.rental_id
+  GROUP BY a.actor_id, a.first_name, a.last_name
+  ORDER BY total_rental DESC
+  LIMIT 20
+")
+```
+
+### Top 20 Aktor Berdasarkan Rental
+
+```{r plot-aktor, fig.cap="Top 20 aktor berdasarkan total rental. Warna menunjukkan keragaman genre yang dibintangi; ukuran titik menunjukkan total revenue."}
+df_aktor %>%
+  mutate(aktor = fct_reorder(aktor, total_rental)) %>%
+  ggplot(aes(x     = aktor,
+             y     = total_rental,
+             color = jml_genre_dibintangi,
+             size  = total_revenue)) +
+  geom_point() +
+  scale_color_gradient(low  = "#f4d03f", high = "#c9184a",
+                       name = "Jumlah genre\ndibintangi") +
+  scale_size_continuous(name   = "Total revenue",
+                        labels = dollar_format(prefix = "$")) +
+  coord_flip() +
+  labs(title = "Top 20 Aktor: Volume Rental, Revenue, dan Keragaman Genre",
+       x = NULL, y = "Total Rental") +
+  theme_minimal(base_size = 12) +
+  theme(plot.title = element_text(face = "bold", family = "serif"))
+```
+
+### Interpretasi
+
+```{=html}
+<div class="insight-banner">
+  <h4>🎬 Temuan Utama — Aktor</h4>
+  <p>
+    <strong>GINA DEGENERES</strong> adalah aktor dengan <em>star power</em> paling
+    dominan dengan meraih sekitar <strong>750 rental</strong>, jauh melampaui peringkat
+    kedua (MATTHEW CARREY dan MARY KEITEL, ~675–680 rental). Selisih yang signifikan
+    ini mengindikasikan adanya efek "superstar" yang nyata.
+  </p>
+  <p>
+    Menariknya, <strong>seluruh 20 aktor teratas adalah generalis</strong> — semua
+    membintangi <strong>13 hingga 16 genre</strong> (warna kuning-oranye hingga merah).
+    Tidak ditemukan satu pun "spesialis genre" yang mampu menembus posisi 20 besar.
+    Ini mengonfirmasi bahwa <em>keragaman genre adalah syarat utama popularitas</em>,
+    bukan keahlian di genre tertentu.
+  </p>
+  <p>
+    Dari sisi revenue, ukuran titik relatif seragam di kisaran <strong>$2.250–$3.250</strong>,
+    menandakan bahwa gap jumlah rental yang besar belum tentu menghasilkan gap revenue
+    yang proporsional yang kemungkinan karena harga sewa antar film relatif homogen.
+  </p>
+</div>
+```
+
+---
+
+## Dimensi 3 — Segmentasi Pelanggan
+
+```{=html}
+<span class="dim-label">Dimensi 03 ⋅ Pelanggan</span>
+```
+
+### Konsep: Herfindahl–Hirschman Index (HHI)
+
+Untuk mengukur seberapa "terfokus" seorang pelanggan pada genre tertentu,
+digunakan **Herfindahl–Hirschman Index (HHI)** yang didefinisikan sebagai:
+
+$$HHI_i = \sum_{g=1}^{G} s_{ig}^2$$
+
+di mana:
+
+- $HHI_i$ = indeks konsentrasi genre pelanggan ke-$i$
+- $G$ = jumlah total genre yang tersedia (16 genre)
+- $s_{ig}$ = proporsi penyewaan pelanggan $i$ pada genre $g$:
+
+$$s_{ig} = \frac{n_{ig}}{\displaystyle\sum_{g'=1}^{G} n_{ig'}}$$
+
+dengan $n_{ig}$ adalah jumlah film genre $g$ yang disewa pelanggan $i$.
+
+Nilai HHI teoritis berkisar antara $\frac{1}{G} = \frac{1}{16} \approx 0{,}0625$
+(distribusi sempurna merata) hingga $1$ (hanya 1 genre). Klasifikasi segmen:
+
+| Rentang HHI | Segmen | Deskripsi |
+|---|---|---|
+| $HHI \geq 0{,}6$ | Genre Lover | Sangat terfokus pada 1–2 genre |
+| $0{,}3 \leq HHI < 0{,}6$ | Mixed Watcher | Preferensi genre tertentu |
+| $HHI < 0{,}3$ | Film Enthusiast | Menyewa merata lintas genre |
+
+### Pengambilan Data
+
+```{r query-hhi}
+# Langkah 1: jumlah sewa per pelanggan per genre
+df_customer_genre <- dbGetQuery(con, "
+  SELECT
+    r.customer_id,
+    c.name   AS genre,
+    COUNT(*) AS n_rental
+  FROM rental r
+    JOIN inventory i      ON r.inventory_id  = i.inventory_id
+    JOIN film_category fc ON i.film_id        = fc.film_id
+    JOIN category c       ON fc.category_id   = c.category_id
+  GROUP BY r.customer_id, c.name
+")
+
+# Langkah 2: hitung HHI per pelanggan di R
+df_hhi <- df_customer_genre %>%
+  group_by(customer_id) %>%
+  mutate(
+    total    = sum(n_rental),
+    proporsi = n_rental / total,
+    hhi_sq   = proporsi^2
+  ) %>%
+  summarise(
+    hhi          = sum(hhi_sq),
+    total_rental = first(total),
+    .groups      = "drop"
+  ) %>%
+  mutate(
+    segmen = case_when(
+      hhi >= 0.6              ~ "Genre Lover",
+      hhi >= 0.3 & hhi < 0.6 ~ "Mixed Watcher",
+      TRUE                    ~ "Film Enthusiast"
+    )
+  )
+```
+
+### Distribusi HHI & Segmentasi
+
+```{r plot-hhi, fig.height=4.5, fig.cap="Distribusi nilai HHI pelanggan. Garis putus-putus menunjukkan batas segmen pada 0,3 dan 0,6."}
+p_hist <- df_hhi %>%
+  ggplot(aes(x = hhi, fill = segmen)) +
+  geom_histogram(bins = 30, color = "white", alpha = .88) +
+  scale_fill_manual(
+    values = c("Genre Lover"    = "#c9184a",
+               "Mixed Watcher"  = "#f4a261",
+               "Film Enthusiast"= "#2d6a4f"),
+    name = "Segmen"
+  ) +
+  geom_vline(xintercept = c(0.3, 0.6), linetype = "dashed",
+             color = "grey30", linewidth = .6) +
+  labs(title = "Distribusi HHI Pelanggan",
+       x     = "HHI (Indeks Konsentrasi Genre)",
+       y     = "Jumlah Pelanggan") +
+  theme_minimal(base_size = 12) +
+  theme(plot.title = element_text(face = "bold", family = "serif"))
+
+p_segmen <- df_hhi %>%
+  count(segmen) %>%
+  mutate(pct   = n / sum(n),
+         label = paste0(segmen, "\n", scales::percent(pct, accuracy = 1))) %>%
+  ggplot(aes(x = "", y = n, fill = segmen)) +
+  geom_col(width = 1, color = "white") +
+  coord_polar("y") +
+  scale_fill_manual(values = c("Genre Lover"    = "#c9184a",
+                               "Mixed Watcher"  = "#f4a261",
+                               "Film Enthusiast"= "#2d6a4f")) +
+  geom_text(aes(label = label), position = position_stack(vjust = .5),
+            size = 3.2, color = "white", fontface = "bold") +
+  labs(title = "Proporsi Segmen") +
+  theme_void(base_size = 12) +
+  theme(legend.position = "none",
+        plot.title = element_text(face = "bold", family = "serif", hjust = .5))
+
+p_hist + p_segmen
+```
+
+### Revenue per Segmen
+
+```{r revenue-segmen}
+df_payment_total <- dbGetQuery(con, "
+  SELECT r.customer_id, SUM(p.amount) AS total_spend
+  FROM rental r
+    JOIN payment p ON r.rental_id = p.rental_id
+  GROUP BY r.customer_id
+")
+
+df_segmen_revenue <- df_hhi %>%
+  left_join(df_payment_total, by = "customer_id")
+
+df_segmen_revenue %>%
+  group_by(segmen) %>%
+  summarise(
+    n_pelanggan   = n(),
+    avg_hhi       = round(mean(hhi), 3),
+    avg_rental    = round(mean(total_rental), 1),
+    avg_spend     = round(mean(total_spend), 2),
+    total_revenue = round(sum(total_spend), 2),
+    .groups       = "drop"
+  ) %>%
+  arrange(desc(total_revenue)) %>%
+  kbl(
+    caption   = "Perbandingan revenue dan perilaku sewa antar segmen pelanggan",
+    col.names = c("Segmen", "Jml. Pelanggan", "Rata-rata HHI",
+                  "Rata-rata Rental", "Avg Spend (\\$)", "Total Revenue ($)"),
+    align     = c("l","r","r","r","r","r")
+  ) %>%
+  kable_styling(bootstrap_options = c("striped","hover","condensed"),
+                full_width = TRUE) %>%
+  row_spec(0, background = "#2d6a4f", color = "white") %>%
+  row_spec(1, background = "#d8f3dc")
+```
+
+### Interpretasi
+
+```{=html}
+<div class="insight-banner">
+  <h4>👥 Temuan Utama — Segmentasi Pelanggan</h4>
+  <p>
+    Hasil segmentasi mengungkap temuan yang <em>luar biasa sekaligus konsisten</em>:
+    <strong>seluruh 599 pelanggan (100%)</strong> tergolong sebagai
+    <strong>Film Enthusiast</strong>, tidak ada satu pun yang masuk kategori
+    Mixed Watcher atau Genre Lover.
+  </p>
+  <p>
+    Dengan rata-rata HHI sebesar <strong>0,10</strong> yang mendekati nilai teoritis
+    minimum \(\frac{1}{16} \approx 0,0625\) untuk distribusi seragam sempurna, para
+    pelanggan menyewa film secara sangat merata di semua 16 genre. Ini menunjukkan
+    bahwa perilaku penyewaan di toko ini bersifat <em>eksplorasi lintas genre</em>,
+    bukan konsumsi berbasis preferensi sempit.
+  </p>
+  <p>
+    Secara bisnis: seluruh revenue sebesar <strong>$67.406,56</strong> berasal
+    dari segmen Film Enthusiast, dengan rata-rata pengeluaran <strong>$112,53</strong>
+    per pelanggan dan rata-rata <strong>26,8 rental</strong> per orang.
+  </p>
+</div>
+```
+
+---
+
+# Sintesis: Menghubungkan Ketiga Dimensi
+
+## Apakah Genre Profit = Genre Populer?
+
+```{r korelasi-genre}
+cor_val <- cor(df_genre$total_rental, df_genre$total_revenue, method = "pearson")
+```
+
+Korelasi Pearson antara volume rental dan total revenue per genre:
+**r = `r round(cor_val, 3)`**
+
+```{r scatter-genre, fig.height=5, fig.cap="Scatter plot volume sewa vs revenue per genre. Titik di atas garis regresi = genre efisien; di bawah garis = kurang efisien."}
+df_genre %>%
+  ggplot(aes(x = total_rental, y = total_revenue, label = genre)) +
+  geom_point(aes(color = revenue_per_rental), size = 4) +
+  geom_smooth(method = "lm", se = TRUE, color = "#2d6a4f", linewidth = .8) +
+  geom_text_repel(size = 3, max.overlaps = 14, family = "serif") +
+  scale_color_gradient(low  = "#f4d03f", high = "#c9184a",
+                       name = "Revenue\nper rental ($)") +
+  scale_x_continuous(labels = comma) +
+  scale_y_continuous(labels = dollar_format(prefix = "$")) +
+  labs(title = "Volume Rental vs Total Revenue per Genre",
+       x = "Total Rental", y = "Total Revenue (USD)") +
+  theme_minimal(base_size = 12) +
+  theme(plot.title = element_text(face = "bold", family = "serif"))
+```
+
+```{=html}
+<div class="callout-info">
+<strong>Interpretasi Scatter Plot</strong><br>
+Nilai <strong>r = 0,849</strong> mengonfirmasi hubungan positif yang <em>kuat</em>
+antara volume sewa dan revenue namun tidak sempurna. <strong>Sports</strong>
+adalah outlier positif terbesar: volume dan revenue sama-sama tertinggi. <strong>Comedy</strong>
+dan <strong>New</strong> berada di <em>atas</em> garis tren (efisien), sementara
+<strong>Documentary</strong>, <strong>Classics</strong>, dan <strong>Children</strong>
+berada di <em>bawah</em> garis (volume relatif tinggi namun revenue lebih rendah dari prediksi).
+</div>
+```
+
+---
+
+# Kesimpulan
+
+```{=html}
+<div class="callout-success">
+<strong>📌 Ringkasan Temuan Tiga Dimensi</strong>
+<ol style="margin-top:10px; line-height:2.1;">
+  <li>
+    <strong>Dimensi Genre:</strong> <strong>Sports</strong> adalah genre paling dominan
+    secara ganda (revenue #1, volume #1). Korelasi kuat (r = 0,849) menunjukkan volume
+    umumnya berbanding lurus dengan revenue — namun <strong>Comedy</strong> dan
+    <strong>New</strong> terbukti lebih efisien, sementara <strong>Documentary</strong>
+    dan <strong>Family</strong> kurang efisien meski banyak disewa.
+  </li>
+  <li>
+    <strong>Dimensi Aktor:</strong> <strong>GINA DEGENERES</strong> memiliki star power
+    nyata (~750 rental, jauh di atas rata-rata). Semua top-20 aktor adalah generalis lintas
+    13–16 genre — keragaman genre terbukti sebagai prediktor popularitas yang lebih kuat
+    dibanding spesialisasi.
+  </li>
+  <li>
+    <strong>Dimensi Pelanggan:</strong> Seluruh 599 pelanggan (100%) adalah
+    <strong>Film Enthusiast</strong> (HHI rata-rata = 0,10). Basis pelanggan bersifat
+    homogen dan berorientasi eksplorasi lintas genre.
+  </li>
+</ol>
+</div>
+
+<div class="callout-dark">
+<strong>💡 Implikasi Bisnis</strong>
+<ul style="margin-top:10px; line-height:2.1;">
+  <li>
+    <strong>Prioritaskan stok genre Sports dan Comedy</strong> — keduanya unggul dalam
+    revenue dengan efisiensi terbaik. Perluas koleksi genre <em>New</em> untuk memanfaatkan
+    efisiensinya yang tinggi.
+  </li>
+  <li>
+    <strong>Jadikan GINA DEGENERES sebagai highlight katalog</strong> — film yang
+    dibintanginya adalah penggerak volume terbesar dan layak diprioritaskan dalam
+    tampilan rekomendasi utama.
+  </li>
+  <li>
+    <strong>Terapkan strategi rekomendasi lintas genre</strong> — karena semua pelanggan
+    adalah Film Enthusiast, program loyalitas berbasis eksplorasi ("sewa 5 genre berbeda,
+    dapat diskon") berpotensi lebih efektif dibanding segmentasi ketat.
+  </li>
+</ul>
+</div>
+```
+
+---
+
+```{=html}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  // Buat tombol toggle
+  var btn = document.createElement('button');
+  btn.id    = 'toc-toggle-btn';
+  btn.title = 'Sembunyikan Daftar Isi';
+  btn.innerHTML = '&#9776; TOC';
+  document.body.appendChild(btn);
+
+  btn.addEventListener('click', function () {
+    var hidden = document.body.classList.toggle('toc-hidden');
+    btn.innerHTML = hidden ? '&#9776; TOC' : '&#10005; TOC';
+    btn.title     = hidden ? 'Tampilkan Daftar Isi' : 'Sembunyikan Daftar Isi';
+    btn.style.background = hidden
+      ? 'var(--clr-accent2)'   /* amber saat tersembunyi */
+      : 'var(--clr-accent)';   /* hijau saat tampil      */
+  });
+});
+</script>
+```
+
+# Penutup
+
+```{r disconnect, include=FALSE}
+dbDisconnect(con)
+```
+
+```{=html}
+<div class="footer-bar">
+  Laporan dibuat menggunakan <strong>R Markdown</strong> &nbsp;|&nbsp;
+  Data: <strong>MySQL Sakila Database</strong> &nbsp;|&nbsp;
+  <strong>HAFIIDH EKA SAGITA — M0724030 — Kelas G — Universitas Sebelas Maret</strong>
+</div>
+```
